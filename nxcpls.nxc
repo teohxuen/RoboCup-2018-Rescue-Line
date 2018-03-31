@@ -1,0 +1,22 @@
+#define ID 0x01
+#define ADDRESS ID
+#define ADDRESS_SEND (ID << 1)
+#define ADDRESS_RECV (ADDRESS_SEND+1)
+
+task main(){
+     byte addr = ADDRESS_SEND;
+     byte reg = 0x43;
+     byte num_of_bytes = 1;
+     byte cmdbuf[];
+     byte outbuf[];
+     
+     SetSensorType(S2, IN_TYPE_LOWSPEED);
+     while (I2CCheckStatus(S2) == STAT_COMM_PENDING);
+     Wait(100);
+     ArrayBuild(cmdbuf,addr,reg);
+     //put data in cmdbuf after first 2 byte
+     I2CBytes(S2,cmdbuf, num_of_bytes,outbuf);
+     NumOut(0, LCD_LINE1, outbuf[0]);
+     Wait(1000);
+}
+
