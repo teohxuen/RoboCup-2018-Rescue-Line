@@ -19,11 +19,10 @@ Arduino Nano 2 communicated with Arduino Nano 1 via Serial, with Nano 2 being th
 Nano 1 would compile the readings from both Nanos which will then send the readings via I2C to the NXT.  
 The NXT would then used the reading to alter the movement of the robot. Additionally, the NXT communicated with the Color Sensor via I2C as well.  
 ## Files
-* The folder titled _"masternano"_ contains the code for Arduino Nano 1, while the folder titled _"nanoultra"_ contains the code for Arduino Nano 2.  
-* The code used for the different runs are titled respectively.  
-* _"measurethresh.nxc"_ is used to measure the threshold of the LDRs while _"see sensors.nxc"_ allowed us to view all the sensor readings at once.  
-
-## Images
-The folder contains:
-* Images of the playfield used in Run 1 and Run 2
-* Top, Side and Back View of the robot
+* Programmes  
+..*The folder titled _"masternano"_ contains the code for Arduino Nano 1, while the folder titled _"nanoultra"_ contains the code for Arduino Nano 2.   
+..*_"measurethresh.nxc"_ is used to measure the threshold of the LDRs while _"see sensors.nxc"_ allowed us to view all the sensor readings at once.  
+..*The code used for the different runs are titled respectively.  
+* Images  
+..*Images of the playfield used in Run 1 and Run 2
+..*Top, Side and Back View of the robot
