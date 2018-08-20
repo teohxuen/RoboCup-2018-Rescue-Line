@@ -5,7 +5,7 @@ Rules for RoboCup Rescue Line 2018 can be found [here](http://junior.robocup.org
 NXT was programmed using NXC as it was easier to code the communication between the nanos and the NXT.  
 The code has not been tidied up since the competition, hence it will be a little messy.
 ## Description of the robot
-Our robot comprises of 1 NXT and 2 Arduino Nano  
+Our robot comprises 1 NXT and 2 Arduino Nano  
   
 * **Arduino Nano 1 (masternano) Consists:** 5 LDRs  
 The LDRs were used for line tracing.  
