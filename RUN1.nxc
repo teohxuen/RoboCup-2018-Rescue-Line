@@ -1,0 +1,508 @@
+const byte SensorPort  =  S2;
+mutex Mutex;
+#define Kp 0.8 //lower k increase tp
+#define Ki 1.5
+#define Kd 0.5
+#define offset 143
+#define Tp 50
+int dldiff = 0, dlturn = 0,htl=0,htr=0;
+long t0 = 0, t2= 0;
+float lastError = 0;
+long time;
+int integral = 0, derivative, motora,motorc,tilt;
+float LightValue = 0, error = 0, Turn = 0,light1 = 0, light3 = 0;
+byte aport=S2, addr=0x03, light[8],cnt=8, msg[] = {0};
+int white[] = {197,157,191,200,168};
+int black[] = {105,69,97,102,49};
+int thresh[] = {151,113,143,151,108};
+int prev[] = {0,0,0,0,0};
+bool found = true;
+
+int ArduinoReadi2c(byte port, byte devaddr,byte &msg[], byte cnt, byte &values[]){
+  byte I2CMsg[7];
+  byte nByteReady = 0;
+  int  result = 0;
+  devaddr=devaddr<<1; //  Arduino uses upper 7 of 8  bits  !!!
+  ArrayBuild(I2CMsg, devaddr, msg);  //build array to send
+  while (I2CStatus(port, nByteReady) == STAT_COMM_PENDING){ Yield(); } //check if can send
+  result=I2CBytes(port, I2CMsg, cnt, values);
+  return result;
+}
+
+inline void convertA(int speed){   //if negative rev if positive fwd
+           if(speed>-127){
+                            if(speed>127){OnFwd(OUT_A,127);}
+                            else{
+                                 if(speed>0){OnFwd(OUT_A,speed);}
+                                 else{OnRev(OUT_A,-speed);}
+                                 }
+                            }
+           else{OnRev(OUT_A,127);}
+}
+inline void convertC(int speed){   //if negative rev if positive fwd
+           if(speed>-127){
+                            if(speed>127){OnFwd(OUT_C,127);}
+                            else{
+                                 if(speed>0){OnFwd(OUT_C,speed);}
+                                 else{OnRev(OUT_C,-speed);}
+                                 }
+                            }
+           else{OnRev(OUT_C,127);}
+}
+
+sub dlightPID(int left, int right){
+    /*dldiff = (left-thresh[0]) - (right-thresh[4]);
+    dlturn = 0.6*dldiff;
+    convertA(-(30+dlturn));
+    convertC(-(30-dlturn));*/
+    if(left>thresh[0]){
+                    if(right>thresh[4]){OnRev(OUT_AC,40);}
+                    else{OnRev(OUT_A,80);}
+    }
+    else{
+                    if(right>thresh[4]){OnRev(OUT_C,80);}
+                    else{OnRev(OUT_AC,40);}
+    }
+
+}
+
+sub rightblack(){
+    RotateMotor(OUT_AC, 4
+    \aaaaaaQ[[0, -60);
+    ArduinoReadi2c(aport,addr,msg,cnt,light);
+    LightValue = light[2];
+    t0 = CurrentTick();
+    found = false;
+    while ((LightValue >= thresh[2])&&((CurrentTick()-t0)<1900)){
+        TextOut(0,LCD_LINE8,"Right");
+        NumOut(0,LCD_LINE7,CurrentTick()-t0);
+        OnFwdSync(OUT_AC, 60, 100);
+        ArduinoReadi2c(aport,addr,msg,cnt,light);
+        LightValue = light[2];
+    }
+    if((CurrentTick()-t0)<1900){
+       found = true;
+       }
+    if(found==false){
+        OnFwdSync(OUT_AC, 60, -100);
+        Wait(1900);
+        ArduinoReadi2c(aport,addr,msg,cnt,light);
+        LightValue = light[2];
+        t0 = CurrentTick();
+        while ((LightValue >= thresh[2])&&((CurrentTick()-t0)<1900)){
+            TextOut(0,LCD_LINE8,"Left");
+            NumOut(0,LCD_LINE7,CurrentTick()-t0);
+            OnFwdSync(OUT_AC, 60, -100);
+            ArduinoReadi2c(aport,addr,msg,cnt,light);
+            LightValue = light[2];
+        }
+        if((CurrentTick()-t0)<1900){
+           found = true;
+           }
+        if(found==false){
+          OnFwdSync(OUT_AC, 60, 100);
+          Wait(1900);
+        while(found == false){
+        t0 = CurrentTick();
+        while (CurrentTick() - t0 <= 2500){
+              TextOut(0,LCD_LINE8,"ALL");
+              ArduinoReadi2c(aport,addr,msg,cnt,light);
+              LightValue = light[2];
+              prev[0] = light[0];
+              prev[4] = light[4];
+              dlightPID(prev[0], prev[4]);
+              }
+                                  if(light[0]<thresh[0]||light[2]<thresh[2]||light[4]<thresh[4]){
+                                     found = true;
+                                     }
+                                  else{
+                                       t0 = CurrentTick();
+                                        while ((LightValue >= thresh[2])&&((CurrentTick()-t0)<1500)){
+                                            TextOut(0,LCD_LINE8,"Left");
+                                            NumOut(0,LCD_LINE7,CurrentTick()-t0);
+                                            OnFwdSync(OUT_AC, 60, -100);
+                                            ArduinoReadi2c(aport,addr,msg,cnt,light);
+                                            LightValue = light[2];
+                                        }
+                                        if((CurrentTick()-t0)<1500){
+                                           found = true;
+                                           }
+                                        if(found==false){
+                                           OnFwdSync(OUT_AC, 60, 100);
+                                           Wait(1500);
+                                          ArduinoReadi2c(aport,addr,msg,cnt,light);
+                                          LightValue = light[2];
+                                          t0 = CurrentTick();
+                                          while ((LightValue >= thresh[2])&&((CurrentTick()-t0)<1500)){
+                                              TextOut(0,LCD_LINE8,"Right");
+                                              NumOut(0,LCD_LINE7,CurrentTick()-t0);
+                                              OnFwdSync(OUT_AC, 60, 100);
+                                              ArduinoReadi2c(aport,addr,msg,cnt,light);
+                                              LightValue = light[2];
+                                          }
+                                          if((CurrentTick()-t0)<1500){found = true;}
+                                          }
+                                          if(found==false){
+                                               OnFwdSync(OUT_AC, 60, -100);
+                                               Wait(1500);
+                                          }
+                                  }
+
+      }
+      }
+      }
+      }
+
+sub leftblack(){
+    RotateMotor(OUT_AC, 40, -60);
+    ArduinoReadi2c(aport,addr,msg,cnt,light);
+    LightValue = light[2];
+    t0 = CurrentTick();
+    found = false;
+    while ((LightValue >= thresh[2])&&((CurrentTick()-t0)<1900)){
+        TextOut(0,LCD_LINE8,"Left");
+        NumOut(0,LCD_LINE7,CurrentTick()-t0);
+        OnFwdSync(OUT_AC, 60, -100);
+        ArduinoReadi2c(aport,addr,msg,cnt,light);
+        LightValue = light[2];
+    }
+    if((CurrentTick()-t0)<1900){
+       found = true;
+       }
+    if(found==false){
+       OnFwdSync(OUT_AC, 60, 100);
+       Wait(1900);
+      ArduinoReadi2c(aport,addr,msg,cnt,light);
+      LightValue = light[2];
+      t0 = CurrentTick();
+      while ((LightValue >= thresh[2])&&((CurrentTick()-t0)<1900)){
+          TextOut(0,LCD_LINE8,"Right");
+          NumOut(0,LCD_LINE7,CurrentTick()-t0);
+          OnFwdSync(OUT_AC, 60, 100);
+          ArduinoReadi2c(aport,addr,msg,cnt,light);
+          LightValue = light[2];
+      }
+      if((CurrentTick()-t0)<1900){
+         found = true;
+         }
+      if(found==false){
+        OnFwdSync(OUT_AC, 60, -100);
+        Wait(1900);
+        while(found == false){
+        t0 = CurrentTick();
+        while (CurrentTick() - t0 <= 4000){
+              TextOut(0,LCD_LINE8,"ALL");
+              ArduinoReadi2c(aport,addr,msg,cnt,light);
+              LightValue = light[2];
+              prev[0] = light[0];
+              prev[4] = light[4];
+              dlightPID(prev[0], prev[4]);
+              }
+                                  if(light[0]<thresh[0]||light[2]<thresh[2]||light[4]<thresh[4]){
+                                     found = true;
+                                     }
+                                  else{
+                                       t0 = CurrentTick();
+                                        while ((LightValue >= thresh[2])&&((CurrentTick()-t0)<1500)){
+                                            TextOut(0,LCD_LINE8,"Left");
+                                            NumOut(0,LCD_LINE7,CurrentTick()-t0);
+                                            OnFwdSync(OUT_AC, 60, -100);
+                                            ArduinoReadi2c(aport,addr,msg,cnt,light);
+                                            LightValue = light[2];
+                                        }
+                                        if((CurrentTick()-t0)<1500){
+                                           found = true;
+                                           }
+                                        if(found==false){
+                                           OnFwdSync(OUT_AC, 60, 100);
+                                           Wait(1500);
+                                          ArduinoReadi2c(aport,addr,msg,cnt,light);
+                                          LightValue = light[2];
+                                          t0 = CurrentTick();
+                                          while ((LightValue >= thresh[2])&&((CurrentTick()-t0)<1500)){
+                                              TextOut(0,LCD_LINE8,"Right");
+                                              NumOut(0,LCD_LINE7,CurrentTick()-t0);
+                                              OnFwdSync(OUT_AC, 60, 100);
+                                              ArduinoReadi2c(aport,addr,msg,cnt,light);
+                                              LightValue = light[2];
+                                          }
+                                          if((CurrentTick()-t0)<1500){found = true;}
+                                          }
+                                          if(found==false){
+                                               OnFwdSync(OUT_AC, 60, -100);
+                                               Wait(1500);
+                                          }
+                                  }
+              
+      }
+      }
+
+    }
+}
+
+sub sideblack(){
+    ArduinoReadi2c(aport,addr,msg,cnt,light);
+    if((light[0]>thresh[0]) && (light[4]>thresh[4])){//if all white
+                 RotateMotor(OUT_AC,40,80);
+                 ArduinoReadi2c(aport,addr,msg,cnt,light);
+                 if((light[0] > thresh[0]) && (light[4]>thresh[4])){
+                              found = false;
+                              while(found == false){
+                                  t0 = CurrentTick();
+                                  while (CurrentTick() - t0 <= 2500){
+                                        TextOut(0,LCD_LINE8,"ALL");
+                                        ArduinoReadi2c(aport,addr,msg,cnt,light);
+                                        LightValue = light[2];
+                                        prev[0] = light[0];
+                                        prev[4] = light[4];
+                                        dlightPID(prev[0], prev[4]);
+                                        }
+                                  if(light[0]<thresh[0]||light[2]<thresh[2]||light[4]<thresh[4]){
+                                     found = true;
+                                     }
+                                  else{
+                                       t0 = CurrentTick();
+                                        while ((LightValue >= thresh[2])&&((CurrentTick()-t0)<1500)){
+                                            TextOut(0,LCD_LINE8,"Left");
+                                            NumOut(0,LCD_LINE7,CurrentTick()-t0);
+                                            OnFwdSync(OUT_AC, 60, -100);
+                                            ArduinoReadi2c(aport,addr,msg,cnt,light);
+                                            LightValue = light[2];
+                                        }
+                                        if((CurrentTick()-t0)<1500){
+                                           found = true;
+                                           }
+                                        if(found==false){
+                                           OnFwdSync(OUT_AC, 60, 100);
+                                           Wait(1500);
+                                          ArduinoReadi2c(aport,addr,msg,cnt,light);
+                                          LightValue = light[2];
+                                          t0 = CurrentTick();
+                                          while ((LightValue >= thresh[2])&&((CurrentTick()-t0)<1500)){
+                                              TextOut(0,LCD_LINE8,"Right");
+                                              NumOut(0,LCD_LINE7,CurrentTick()-t0);
+                                              OnFwdSync(OUT_AC, 60, 100);
+                                              ArduinoReadi2c(aport,addr,msg,cnt,light);
+                                              LightValue = light[2];
+                                          }
+                                          if((CurrentTick()-t0)<1500){found = true;}
+                                          }
+                                          if(found==false){
+                                               OnFwdSync(OUT_AC, 60, -100);
+                                               Wait(1500);
+                                          }
+                                  }
+                              }
+                 }
+        else{
+         if((light[0]>thresh[0])&&(light[4]<thresh[4])){rightblack();}
+         else{
+              if((light[0]<thresh[0])&&(light[4]>thresh[4])){leftblack();}
+              }
+         }
+
+    }
+    else{
+        if((light[0]>thresh[0])&&(light[4]<thresh[4])){rightblack();}
+        else{
+        if((light[0]<thresh[0])&&(light[4]>thresh[4])){leftblack();}
+        }
+    }
+}
+
+sub green(){
+                 int sgreen = 0;
+                 htl = SensorHTColorNum(S1);
+                 htr = SensorHTColorNum(S4);
+                 if((htl==4)||(htr==4)){
+                    if(htl==4){
+                         if(htr==4){sgreen=3;}
+                         else{sgreen=1;}
+                     }
+                     else{sgreen=2;}
+                     RotateMotor(OUT_AC,40,-40);
+                     ArduinoReadi2c(aport,addr,msg,cnt,light);
+                     if((light[0]<thresh[0]-10&&light[2]<thresh[2]-10) || (light[4]<thresh[4]-10&&light[2]<thresh[2]-10)){
+                         RotateMotor(OUT_AC,40,-150);
+                     }
+                     else{
+                         if(sgreen==1){ //green left
+                            PlayTone(200, 500);
+                            TextOut(0,LCD_LINE8,"Green Left");
+                            Off(OUT_AC);
+                            RotateMotor(OUT_AC, 50, -250);
+                            OnFwdSync(OUT_AC, 50, -100);
+                            Wait(700);      //need change on day itself
+                            ArduinoReadi2c(aport,addr,msg,cnt,light);
+                            LightValue = light[2];
+                            t0 = CurrentTick();
+                            while ((LightValue >= thresh[2])&&((CurrentTick()-t0)<1900)){
+                                TextOut(0,LCD_LINE8,"Green Left");
+                                NumOut(0,LCD_LINE7,CurrentTick()-t0);
+                                OnFwdSync(OUT_AC, 60, -100);
+                                ArduinoReadi2c(aport,addr,msg,cnt,light);
+                                LightValue = light[2];
+                            }
+                         }
+                         else{ //green right
+                            if(sgreen==2){
+                                PlayTone(200, 500);
+                                Off(OUT_AC);
+                                RotateMotor(OUT_AC, 50, -300);
+                                OnFwdSync(OUT_AC, 50, 100);
+                                Wait(700);  //need change on day itself
+                                ArduinoReadi2c(aport,addr,msg,cnt,light);
+                                LightValue = light[2];
+                                TextOut(0,LCD_LINE7,"Green Right");
+                                while (LightValue >= thresh[2]){
+                                        TextOut(0,LCD_LINE8,"Green Right");
+                                        OnFwdSync(OUT_AC, 50, 100);
+                                        ArduinoReadi2c(aport,addr,msg,cnt,light);
+                                        LightValue = light[2];
+                                        }
+                            }
+                            else{
+                                //uturn
+                                PlayTone(200, 500);
+                                Off(OUT_AC);
+                                RotateMotor(OUT_AC,30,200);
+                                OnFwdSync(OUT_AC, 50, 100);
+                                Wait(700);
+                                ArduinoReadi2c(aport,addr,msg,cnt,light);
+                                LightValue = light[2];
+                                TextOut(0,LCD_LINE7,"U Turn");
+                                while (LightValue >= thresh[2]){
+                                        TextOut(0,LCD_LINE8,"Right");
+                                        OnFwdSync(OUT_AC, 50, 100);
+                                        ArduinoReadi2c(aport,addr,msg,cnt,light);
+                                        LightValue = light[2];
+                                }
+                                RotateMotor(OUT_AC,30,100);
+                            }
+                         }
+                     }
+                }
+}
+
+task main(){
+     SetSensorLowspeed(SensorPort);
+     SetSensorLowspeed(S1);
+     SetSensorLowspeed(S4);
+     while (true) {
+           time = CurrentTick();
+           ArduinoReadi2c(aport,addr,msg,cnt,light);  // Arduino 1 byte
+           if((light[0]>190)||(light[2]>200||light[4]>190)){
+              PlayTone(1000,400);
+              Wait(1000);
+           }
+           if(light[5]>128){tilt = -(256-light[5]);}
+           else{tilt = light[5];}
+           if(light[6]>0&&light[6]<5){
+                                      //OnRev(OUT_AC,20); //remove if not held down
+                                      //Wait(500);
+                                      Wait(500);
+                                      RotateMotor(OUT_AC,40,70);
+                                      RotateMotorEx(OUT_AC,80,470,100,true,true); //obstace 90 degreee
+                                      ArduinoReadi2c(aport,addr,msg,cnt,light);
+                                      RotateMotor(OUT_AC,40,-50);
+                                      while(light[1]>thresh[1]){
+                                          OnRev(OUT_A,15);
+                                          OnRev(OUT_C,80);
+                                          ArduinoReadi2c(aport,addr,msg,cnt,light);
+                                      }
+                                      RotateMotor(OUT_AC,40,-100);
+                                      ArduinoReadi2c(aport,addr,msg,cnt,light);
+                                      LightValue = light[2];
+                                      t0 = CurrentTick();
+                                      while ((LightValue >= thresh[2])&&((CurrentTick()-t0)<1500)){
+                                              TextOut(0,LCD_LINE8,"Right");
+                                              NumOut(0,LCD_LINE7,CurrentTick()-t0);
+                                              OnFwdSync(OUT_AC, 60, 100);
+                                              ArduinoReadi2c(aport,addr,msg,cnt,light);
+                                              LightValue = light[2];
+                                      }
+
+
+
+           }
+           if((htl==4)||(htr==4)){
+               PlayTone(440, 500);
+           }
+           if(tilt>=4){
+                       OnRev(OUT_B,70);
+                       Wait(500);
+                       t0 = CurrentTick();
+                       while (tilt >= 1){ //changed this
+                             TextOut(0,LCD_LINE8,"ALL");
+                             ArduinoReadi2c(aport,addr,msg,cnt,light);
+                              dldiff = (light[1]-thresh[1]) - (light[3]-thresh[3]);
+                              dlturn = 0.6*dldiff;
+                              convertA(-(80+dlturn));
+                              convertC(-(80-dlturn));
+                             if(light[5]>128){tilt = -(256-light[5]);}
+                             else{tilt = light[5];}
+                             }
+                       OnFwd(OUT_B,70);
+                       Wait(500);
+                       OnFwd(OUT_AC,30);
+                       Wait(700);
+           }
+           if(tilt<-25){
+                       OnRev(OUT_B,70);
+                       Wait(500);
+                       while(tilt<=-30){
+                             TextOut(0,LCD_LINE8,"ALL");
+                             ArduinoReadi2c(aport,addr,msg,cnt,light);
+                              dldiff = (light[1]-thresh[1]) - (light[3]-thresh[3]);
+                              dlturn = 0.6*dldiff;
+                              convertA(-(10+dlturn));
+                              convertC(-(10-dlturn));
+                             if(light[5]>128){tilt = -(256-light[5]);}
+                             else{tilt = light[5];}
+                       
+                       }
+                       OnFwd(OUT_B,100);
+                       Wait(500);
+                       RotateMotor(OUT_AC,100,-500);
+                       RotateMotor(OUT_AC,50,80);
+
+
+           }
+           green();
+           if ((light[1]>= thresh[1]) && (light[3] >= thresh[3]) && (light[2] >= thresh[2])){
+               LightValue = light[2];
+               while ((LightValue >= thresh[2])&&(prev[0]>=thresh[0])&&(prev[4]>=thresh[4])){
+                   OnFwd(OUT_AC, 30);
+                   ArduinoReadi2c(aport,addr,msg,cnt,light);
+                   LightValue = light[2];
+                   prev[0] = light[0];
+                   prev[4] = light[4];
+                   TextOut(0,LCD_LINE8,"CHECK");
+                   }
+                sideblack();
+            }
+           ArduinoReadi2c(aport,addr,msg,cnt,light);
+           LightValue = light[2];
+           error = LightValue - offset;
+           integral = (2/3 * integral) + error;
+           derivative = error - lastError;
+           Turn = Kp*error + Ki*integral + Kd*derivative;
+           motora = -(Tp-Turn);
+           convertA(motora);
+           motorc = -(Tp+Turn);
+           convertC(motorc);
+           lastError = error;
+           NumOut(0, LCD_LINE1, light[0], DRAW_OPT_CLEAR_LINE);
+           NumOut(20, LCD_LINE1, light[1], DRAW_OPT_NORMAL);
+           NumOut(40, LCD_LINE1, light[2], DRAW_OPT_NORMAL);
+           NumOut(0, LCD_LINE2, light[3], DRAW_OPT_CLEAR_LINE);
+           NumOut(20, LCD_LINE2, light[4], DRAW_OPT_NORMAL);
+           NumOut(0, LCD_LINE5, htl, DRAW_OPT_CLEAR_LINE);
+           NumOut(0, LCD_LINE6, htr, DRAW_OPT_CLEAR_LINE);
+           NumOut(0, LCD_LINE7, light[6], DRAW_OPT_CLEAR_LINE); //utra
+           NumOut(0, LCD_LINE4, tilt, DRAW_OPT_CLEAR_LINE);
+           //find values needed to trigger last room
+     }
+
+}
+

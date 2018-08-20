@@ -1,0 +1,38 @@
+int ArduinoReadi2c(byte port, byte devaddr,byte &msg[], byte cnt, byte &values[]){
+  byte I2CMsg[7];
+  byte nByteReady = 0;
+  int  result = 0;
+  devaddr=devaddr<<1; //  Arduino uses upper 7 of 8  bits  !!!
+  ArrayBuild(I2CMsg, devaddr, msg);  //build array to send
+  while (I2CStatus(port, nByteReady) == STAT_COMM_PENDING){ Yield(); } //check if can send
+  result=I2CBytes(port, I2CMsg, cnt, values);
+  return result;
+}
+byte aport=S2, addr=0x03, light[8],cnt=8, msg[] = {1};
+int angle = 0,htl,htr,tilt;
+
+task main() {
+     SetSensorLowspeed(S2);
+     SetSensorLowspeed(S1);
+     SetSensorLowspeed(S4);
+     while(true){
+                 ArduinoReadi2c(aport,addr,msg,cnt,light);
+                 if(light[5]>128){tilt = -(256-light[5]);}
+                 else{tilt = light[5];}
+                 htl = SensorHTColorNum(S1);
+                 htr= SensorHTColorNum(S4);
+                 angle = (light[7]+128)*15-1900;
+                 NumOut(0, LCD_LINE1, light[0], DRAW_OPT_CLEAR_LINE);
+                 NumOut(20, LCD_LINE1, light[1], DRAW_OPT_NORMAL);
+                 NumOut(40, LCD_LINE1, light[2], DRAW_OPT_NORMAL);
+                 NumOut(0, LCD_LINE2, light[3], DRAW_OPT_CLEAR_LINE);
+                 NumOut(20, LCD_LINE2, light[4], DRAW_OPT_NORMAL);
+                 NumOut(0, LCD_LINE5, htl, DRAW_OPT_CLEAR_LINE);
+                 NumOut(0, LCD_LINE6, htr, DRAW_OPT_CLEAR_LINE);
+                 NumOut(0, LCD_LINE7, light[6], DRAW_OPT_CLEAR_LINE); //utra
+                 NumOut(0, LCD_LINE8, angle, DRAW_OPT_CLEAR_EOL);
+                 NumOut(0, LCD_LINE4, tilt, DRAW_OPT_CLEAR_LINE);
+                 Wait(10);
+                 }
+}
+

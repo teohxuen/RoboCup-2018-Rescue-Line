@@ -1,0 +1,45 @@
+int ArduinoReadi2c(byte port, byte devaddr,byte &msg[], byte cnt, byte &values[]){
+  byte I2CMsg[7];
+  byte nByteReady = 0;
+  int  result = 0;
+  devaddr=devaddr<<1; //  Arduino uses upper 7 of 8  bits  !!!
+  ArrayBuild(I2CMsg, devaddr, msg);  //build array to send
+  while (I2CStatus(port, nByteReady) == STAT_COMM_PENDING){ Yield(); } //check if can send
+  result=I2CBytes(port, I2CMsg, cnt, values);
+  return result;
+}
+
+byte aport=S2, addr=0x03, light[8],cnt=8, msg[] = {0};
+
+int black[] = {255,255,255,255,255};
+int white[] = {0,0,0,0,0};
+int thresh[] = {0,0,0,0,0};
+unsigned int count = 5;
+
+task main(){
+     SetSensorLowspeed(S2);
+     long t0;
+     t0 = CurrentTick();
+     TextOut(0,LCD_LINE8,"START");
+     while(CurrentTick()-t0<5000){
+                                   ArduinoReadi2c(aport,addr,msg,cnt,light);
+                                   for(int i =0 ; i<5;i++){
+                                           if(light[i]>white[i]){white[i] = light[i];}
+                                           if(light[i]<black[i]){black[i] = light[i];}
+                                           }
+    }
+    for(int i =0;i<5;i++){
+            thresh[i] = (white[i]+black[i])/2;
+    }
+     NumOut(0,LCD_LINE1,thresh[0]);
+     NumOut(0,LCD_LINE2,thresh[1]);
+     NumOut(0,LCD_LINE3,thresh[2]);
+     NumOut(0,LCD_LINE4,thresh[3]);
+     NumOut(0,LCD_LINE5,thresh[4]);
+     Wait(100000);
+}
+
+
+
+
+
