@@ -15,7 +15,7 @@ The compass is to allow us to detect the tilt (to let us know if the robot is on
 The 2 Color Sensor were used to detect the green junction, while the light sensors were used to detect the entrance of the Evacuation Zone.  2 motors were used for manouvering and the last motor were used in the attachment to collect the balls. 
 
 ## Communications between the Arduino Nanos and NXT
-Arduino Nano 2 communicates with Arduino Nano 1 via Serial, with Nano 2 being the slave and Nano 1 being the master. Arduino Nano 1 will then compile the readings from both Arduino Nanos which will then be sent via I2C to the NXT. Additionally, the 2 Color sensors communicates with the NXT via I2C. Using the values from the sensors, NXT will alter the movement of the robot accordingly.
+Arduino Nano 2 communicates with Arduino Nano 1 via Serial, with Nano 2 being the slave and Nano 1 being the master. Nano 1 will then compile the readings from both Arduino Nanos which will then be sent via I2C to the NXT. Additionally, the 2 Color sensors communicates with the NXT via I2C. Using the values from the sensors, NXT will alter the movement of the robot accordingly.
 
 ## Files
 * **Programmes**  
