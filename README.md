@@ -22,3 +22,7 @@ The NXT would then used the reading to alter the movement of the robot. Addition
 * The folder titled _"masternano"_ contains the code for Arduino Nano 1, while the folder titled _"nanoultra"_ contains the code for Arduino Nano 2.  
 * The code used for the different runs are titled respectively.  
 * _"measurethresh.nxc"_ is used to measure the threshold of the LDRs while _"see sensors.nxc"_ allowed us to view all the sensor readings at once.  
+
+##Images of Playfields
+Images of the playfield used for Run 1 and Run 2 can be found under in 
+the folder.  
