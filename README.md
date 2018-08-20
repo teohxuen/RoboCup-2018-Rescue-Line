@@ -3,7 +3,7 @@ Programmes for 2018 RoboCup Rescue Line (Hwa Chong's Team Poivre)
 Final rank: Probably the last few teams  
 Rules for RoboCup Rescue Line 2018 can be found [here](http://junior.robocup.org/wp-content/uploads/2018Rules/rescue_line_rules_final_2018.pdf).  
 NXT was programmed using NXC as it was easier to code the communication between the nanos and the NXT.  
-The code has not been tidied up since the competition, hence it will be a little messy.
+**WARNING: The code has yet to be tidied up and there is a huge lack of comments. Be ready for sphagetti code.**  
 ## Description of the robot
 Our robot comprises 1 NXT and 2 Arduino Nano  
   
